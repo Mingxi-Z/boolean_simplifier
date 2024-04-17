@@ -26,5 +26,7 @@ target_sources(boolean_simplify PRIVATE MCDC/mcdc/Source/scanner.cpp)
 target_sources(boolean_simplify PRIVATE MCDC/mcdc/Source/token.cpp)
 target_sources(boolean_simplify PRIVATE MCDC/mcdc/Source/virtualmachine.cpp)
 
+target_sources(boolean_simplify PRIVATE minbool/minbool.h)
+
 target_link_libraries(${PROJECT_NAME} boost::boost)
 target_link_libraries(${PROJECT_NAME} highs::highs)
