@@ -1,7 +1,13 @@
 #include <iostream>
-#include "Quine-McCluskey/src/logical_expr.hpp"
-#include "Quine-McCluskey/src/quine_mccluskey.hpp"
+#include <Highs.h>
+#include "MCDC/mcdc/Include/mcdc.hpp"
 
 int main(int, char**){
-    std::cout << "Hello, from boolean_simplify!\n";
+    string s = "a&b&c";
+    MintermCalculator c(s);
+    MintermVector v = c.calculate();
+    for (int i : v) {
+        std::cout << i << ", ";
+    }
+    std::cout << std::endl;
 }
