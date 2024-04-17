@@ -1,0 +1,1 @@
+function(W, X, Y, Z) = WX~Y~Z + W~X~Y~Z + ~W~X~YZ + ~WX~YZ + WX~YZ + W~X~YZ + ~W~XY~Z + ~WXY~Z + ~WXYZ

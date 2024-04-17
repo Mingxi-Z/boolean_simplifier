@@ -1,0 +1,21 @@
+CXX        = g++
+CFLAGS     = -Wall -Wextra -O2 -std=c++0x -Wno-sign-compare
+LDFLAGS    =
+BOOST_PATH = /usr
+INCLUDES   = -I $(BOOST_PATH)/include/
+LIBS       = -L $(BOOST_PATH)/lib -lboost_program_options
+TARGET     = qm
+OBJS       = src/main.o src/quine_mccluskey.o
+
+all:     $(TARGET)
+rebuild: clean all
+
+$(TARGET): $(OBJS)
+	$(CXX) $(LDFLAGS) -o $@ $(OBJS) $(LIBS)
+
+clean:
+	rm -f $(TARGET) $(OBJS) *~ \#*
+
+.cpp.o:
+	$(CXX) $(CFLAGS) $(INCLUDES) -c $< -o $@
+
