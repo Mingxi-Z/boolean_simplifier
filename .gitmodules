@@ -1,6 +1,0 @@
-[submodule "MCDC"]
-	path = MCDC
-	url = https://github.com/Armin-Montigny/MCDC.git
-[submodule "minbool"]
-	path = minbool
-	url = https://github.com/madmann91/minbool.git
