@@ -131,10 +131,10 @@ void  QuineMcluskey::initializeCoverageForPrimeImplicants(Coverage& coverageForP
 // This is a call back function
 bool checkCoverForCell(const CellVectorHeader& minTermRowHeader, CellVectorHeader& primeImplicantColumnHeader)
 {
-	// The Prime Implicant Info has been stored in the any field of the column header´. Get it
+	// The Prime Implicant Info has been stored in the any field of the column headerï¿½. Get it
 	const PrimeImplicantType resultingPrimeImplicant{ std::any_cast<PrimeImplicantType>(primeImplicantColumnHeader.userData) };
 	// And, get the minterm
-	const MinTermType mtnMinTerm{ minTermRowHeader.index };
+	const MinTermType mtnMinTerm{ static_cast<MinTermType>(minTermRowHeader.index) };
 
 	// We want to know, if the minterm is covered by the prime implicant
 	bool result{ false };
@@ -142,9 +142,9 @@ bool checkCoverForCell(const CellVectorHeader& minTermRowHeader, CellVectorHeade
 	// Check, if the prime implicant implies the minterm
 	const MinTermNumber mtnPrimeImplicant{ resultingPrimeImplicant.term };
 	const MinTermNumber primeImplicantMask{ resultingPrimeImplicant.mask };
-	const MinTermNumber primeImplicantMaskNegated{ ~resultingPrimeImplicant.mask };
-	const MinTermNumber mtnMinTermMasked{ mtnMinTerm & primeImplicantMaskNegated };
-	const MinTermNumber mtnPrimeImplicantMasked{ mtnPrimeImplicant & primeImplicantMaskNegated };
+	const MinTermNumber primeImplicantMaskNegated{ static_cast<MinTermNumber>(~resultingPrimeImplicant.mask) };
+	const MinTermNumber mtnMinTermMasked{ static_cast<MinTermNumber>(mtnMinTerm & primeImplicantMaskNegated) };
+	const MinTermNumber mtnPrimeImplicantMasked{ static_cast<MinTermNumber>(mtnPrimeImplicant & primeImplicantMaskNegated) };
 
 	if (mtnMinTermMasked == mtnPrimeImplicantMasked)
 	{
@@ -364,7 +364,7 @@ void QuineMcluskey::compareTwoEntries(TableForBitCount& upper, TableForBitCount&
 			if (teUpper.maskForEliminatedBit == telower.maskForEliminatedBit)
 			{
 				// XOR for the 2 terms, will find the different set bits between 2 terms
-				const MinTermType termDifference{ (teUpper.mintermLower ^ telower.mintermLower) };
+				const MinTermType termDifference{ static_cast<MinTermType>(teUpper.mintermLower ^ telower.mintermLower) };
 				// If there is only a difference in one bit. So is there only one bit set in the difference we just calculated
 				const bool differenceInOnlyOneBit{ (!(termDifference & (termDifference - 1))) };  // Taken from "Hackers Delight"
 				// So, we found 2 terms, where one variable can be eliminated
@@ -575,7 +575,7 @@ uint QuineMcluskey::getLowestIndexOfBitCountEntry(uint indexReductionTableColumn
 
 
 // This is a little bit hard to understand. Lets give it a try
-// Sínce comparing rows bit certain number of set bits is a very time and memory consuming
+// Sï¿½nce comparing rows bit certain number of set bits is a very time and memory consuming
 // operation, we will uses multithrading to reduce calculation time
 // We need to compare ranges with number of set bits. For example we need to
 // compare a subtable that has 4 bits with a subtable that has 3 bits. And so one
@@ -684,7 +684,7 @@ std::string PrimeImplicantType::toString(const SymbolTable& symbolTable) const
 	// Maximum number of symbols in the symbol table
 	const uint symbolCount{ symbolTable.numberOfSymbols() };
 	// We will check, which bit is set or not. For the set bits we will print a symbol
-	MinTermNumber maskSelector{ bitMask[symbolCount - 1] };
+	MinTermNumber maskSelector{ static_cast<MinTermNumber>(bitMask[symbolCount - 1]) };
 
 	// We will iterate over all symbols
 	std::set<cchar>::iterator symbolIterator{ symbolTable.symbol.begin() };
@@ -697,7 +697,7 @@ std::string PrimeImplicantType::toString(const SymbolTable& symbolTable) const
 		if (!(maskSelector&  mask))
 		{
 			const MinTermNumber mt{ term };
-			const MinTermNumber mtMasked{ mt & maskSelector }; // This will result in true, if there is a positive variable at this position 
+			const MinTermNumber mtMasked{ static_cast<MinTermNumber>(mt & maskSelector) }; // This will result in true, if there is a positive variable at this position 
 			// Distihuish between lower case and upper case.
 			result << (mtMasked ? *symbolIterator : static_cast<cchar>((*symbolIterator) - ('a' - 'A')));
 		}
@@ -761,7 +761,7 @@ void QuineMcluskey::printReductionTable(const SymbolTable& symbolTable, const st
 
 				// This will be used to iterate over the single literals in the minterms
 				// Start with this vale und will be shifted right
-				MinTermNumber bitMaskLocal{ bitMask[maxNumberOfBitsMinusOne] };
+				MinTermNumber bitMaskLocal{ static_cast<MinTermNumber>(bitMask[maxNumberOfBitsMinusOne]) };
 				
 				// Now check all bits in the term
 				for (uint bitIndex = 0; bitIndex < maxNumberOfBits; ++bitIndex)

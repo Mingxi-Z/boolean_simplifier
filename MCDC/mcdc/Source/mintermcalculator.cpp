@@ -142,7 +142,7 @@ MintermVector MintermCalculator::calculate()
 		numberOfBooleanVariables = objectCode.symbolTable.numberOfSymbols();
 		const uint maxEvaluations{ 1U << numberOfBooleanVariables };
 
-		// If we have more than 10 boolean variables, then we will use multí threading to calculate the minterms
+		// If we have more than 10 boolean variables, then we will use multï¿½ threading to calculate the minterms
 		if (numberOfBooleanVariables > 10)
 		{
 			// Claculate the ranges to be calculated by each thread
@@ -223,8 +223,7 @@ void printTruthTable(const std::string& source, MintermVector& mintermVector, co
 	const uint32 maxEvaluations{ bitMask[symbolCount] };
 	// The width of a string containg the decimal equivalent of the biggest number
 	// Needed for formatting
-	const MinTermType maxLengthDecimalEquivalent{ static_cast<uint>(std::log10(maxEvaluations)) + 1 };
-
+	const MinTermType maxLengthDecimalEquivalent{ static_cast<MinTermType>((std::log10(maxEvaluations)) + 1) };
 	// Determine where the output is streamed to
 	const bool predicateForOutputToFile{ (symbolCount > 4) };
 	OutStreamSelection outStreamSelection(ProgramOption::pttc, predicateForOutputToFile) ;

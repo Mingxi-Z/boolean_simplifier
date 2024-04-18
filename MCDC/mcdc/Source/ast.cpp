@@ -51,7 +51,7 @@
 // Also Booelan Short Cut Evealuation can be taken into account.
 //
 // The tree can be printed to the screen or in a file. For easier reading, the printout is turned
-// 90° counter clock wise.
+// 90ï¿½ counter clock wise.
 //
 // The virtual Machine for AST is used to perform operations on ASTs
 
@@ -92,7 +92,7 @@ void VirtualMachineForAST::printTreeStandard(const std::string& source)
 
 // Main function to print an AST
 // Please note: The given os mayby std::cout, a file or both
-// The tree is printed in 90° counter clockwise to have a better usage of the output media
+// The tree is printed in 90ï¿½ counter clockwise to have a better usage of the output media
 // Line numbers are shown and the operators have also references to these line numbers
 // With that it is possible to identify the childs of a node, For eaxmple:
 // For the function  "!((a+b)(c+d))"
@@ -174,7 +174,7 @@ void VirtualMachineForAST::printTree(std::ostream& os)
 				const std::string strTemp{ oss.str() };
 				// Calculate the last column  of the output. Lokk for the greatest value in case that there will
 				// be 2 strings in the same line
-				const uint lastPosition{ (tab * ast[i].level) + narrow_cast<uint>(strTemp.size()) + 1 };
+				const uint lastPosition{ (static_cast<uint>(tab) * ast[i].level) + static_cast<uint>(strTemp.size()) + 1 };
 				// Prevent buffer overflow
 				if (lastPosition < maxBufSize)
 				{

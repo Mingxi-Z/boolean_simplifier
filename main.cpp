@@ -35,7 +35,7 @@ private:
     
     Highs highs;
     const char* tmpFileName = "input.lp";
-    const double offset = 1; //std::numeric_limits<double>::epsilon();
+    const double offset = std::numeric_limits<double>::epsilon();
     std::set<int> idxToNegate;
 };
 
@@ -93,7 +93,8 @@ string BoolSimplifier::checkSubModel(std::set<int> &idxes)
         cout << "row_upper_" << model.row_upper_[rowIdx] << endl;
         model.row_upper_[rowIdx] = std::numeric_limits<int>::max();
     }
-    
+    highs.passModel(model);
+
     HighsStatus s = highs.run();
     cout << (int) s << endl;
     HighsModelStatus x = highs.getModelStatus();
@@ -118,7 +119,7 @@ string BoolSimplifier::findDC(void)
     };
     getAllCombs(allCombs);
     
-    std::set<int> idxes = {1, 2};
+    std::set<int> idxes = {1, -2};
     string sDcs = "";
     do {
         sDcs += checkSubModel(idxes);
