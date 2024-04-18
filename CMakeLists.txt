@@ -3,6 +3,7 @@ project(boolean_simplify)
 
 set (CMAKE_CXX_STANDARD 17)
 set(DCMAKE_TOOLCHAIN_FILE "conan_toolchain.cmake")
+set(CMAKE_CXX_FLAGS_DEBUG  "-g")
 
 find_package(Boost)
 find_package(highs)
