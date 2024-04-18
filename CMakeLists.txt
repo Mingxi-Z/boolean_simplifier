@@ -1,9 +1,8 @@
 cmake_minimum_required(VERSION 3.15)
 project(boolean_simplify)
 
-set (CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 17)
 set(DCMAKE_TOOLCHAIN_FILE "conan_toolchain.cmake")
-set(CMAKE_CXX_FLAGS_DEBUG  "-g")
 
 find_package(Boost)
 find_package(highs)
@@ -31,3 +30,5 @@ target_sources(boolean_simplify PRIVATE minbool/minbool.h)
 
 target_link_libraries(${PROJECT_NAME} boost::boost)
 target_link_libraries(${PROJECT_NAME} highs::highs)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
