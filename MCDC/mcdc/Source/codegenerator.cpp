@@ -193,7 +193,11 @@ TokenWithAttribute CodeGeneratorForVM::generate(const Production &production, To
 		opCodeLine.parameter3 = static_cast<uint>(narrow_cast<cchar>(std::tolower(tokenWithAttribute1.inputTerminalSymbol)));
 
 		// And we will add this symbol to the symbol table
-		objectCode.symbolTable.symbol.insert((narrow_cast<cchar>(std::tolower(tokenWithAttribute1.inputTerminalSymbol))));
+		cchar cs = (narrow_cast<cchar>(std::tolower(tokenWithAttribute1.inputTerminalSymbol)));
+		if (!objectCode.symbolTable.symbol.count(cs))
+			objectCode.symbolTable.orderedSymbol.push_back(cs);
+		objectCode.symbolTable.symbol.insert(cs);
+		//objectCode.symbolTable.symbol.insert((narrow_cast<cchar>(std::tolower(tokenWithAttribute1.inputTerminalSymbol))));
 
 		
 		// The result is always the non-terminal EXPR   (expression)
@@ -364,7 +368,11 @@ TokenWithAttribute CodeGeneratorForAST::generate(const Production &production, T
 // Add a symbol (the name of a boolean variable) to our intern symbol table
 void VirtualMachineForAST::addSymbol(cchar s)
 {
-	symbolTable.symbol.insert((narrow_cast<cchar>(std::tolower(s))));
+	cchar cs = (narrow_cast<cchar>(std::tolower(s)));
+	if (!symbolTable.symbol.count(cs))
+		symbolTable.orderedSymbol.push_back(cs);
+	symbolTable.symbol.insert(cs);
+
 }
 
 

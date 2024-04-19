@@ -51,6 +51,7 @@ struct SymbolTable
 {
 	// All input symbols, so possible something betwenn a-z and A-Z
 	SymbolType symbol;
+	std::vector<cchar> orderedSymbol;
 
 	// Mapping of input symbols to a consecutive list
 	std::map<uint, uint> normalizedInput;
