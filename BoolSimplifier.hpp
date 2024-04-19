@@ -56,6 +56,7 @@ private:
     );
 
     int numX = 3;
+    int numRows = -1;
     Highs highs;
     const char* tmpFileName = "input.lp";
     const double offset = std::numeric_limits<double>::epsilon();

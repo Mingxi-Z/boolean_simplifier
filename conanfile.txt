@@ -5,3 +5,5 @@ highs/1.7.0
 [generators]
 CMakeDeps
 CMakeToolchain
+[layout]
+cmake_layout

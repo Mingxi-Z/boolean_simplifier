@@ -8,7 +8,7 @@ void BoolSimplifier::getCombUtil(
     const std::vector<std::pair<int, int>> &allIdxes)
 {
 
-    if (!current.empty())
+    if (current.size() > 1)
         combs.emplace_back(current.begin(), current.end());
 
     if (current.size() == numX) {
@@ -68,6 +68,12 @@ void BoolSimplifier::formatInputIneqnsAsLP(std::vector<int> &idxes)
 
 string BoolSimplifier::simplifyBoolExp(void)
 {
+    std::vector<int> allIdx(nVar);
+    iota(allIdx.begin(), allIdx.end(), 1);
+    formatInputIneqnsAsLP(allIdx);
+    highs.readModel(tmpFileName);
+    numRows = highs.getNumRow();
+
     findDC();
 
     MintermCalculator cDcs(sDcs);
@@ -77,6 +83,9 @@ string BoolSimplifier::simplifyBoolExp(void)
 
     std::vector<uint8_t> on {vExp.begin(), vExp.end()};
     std::vector<uint8_t> dcc {vDc.begin(), vDc.end()};
+    // dcc.erase(dcc.begin() + 3);
+    // dcc.pop_back();
+
     auto solution = minbool::minimize_boolean<5>(on, dcc);
 
     for (auto& term : solution)
@@ -98,6 +107,7 @@ string BoolSimplifier::checkSubModel(std::vector<int> &idxes)
         model.row_lower_[rowIdx] = model.row_upper_[rowIdx] + offset; 
         model.row_upper_[rowIdx] = std::numeric_limits<int>::max();
     }
+    idxToNegate = {};
     highs.passModel(model);
 
     HighsStatus s = highs.run();
@@ -117,15 +127,15 @@ void BoolSimplifier::findDC(void)
     auto getAllIdxes = 
     [&](std::vector<std::pair<int, int>> &allIdxes) 
     {
-        for (int i = 0; i < highs.getNumRow(); ++i)
+        for (int i = 0; i < numRows; ++i)
         {
-            allIdxes.emplace_back(i + 1, -(i + 1));
+            allIdxes.push_back({i + 1, -(i + 1)});
         }   
     };
     getAllIdxes(allIdxes);
     
     //std::set<int> idxes = {1, -2};
-    string sDcs = "";
+    sDcs = "";
 
     std::vector<std::vector<int>> combs;
     getCombs(combs, allIdxes);
@@ -163,8 +173,9 @@ string BoolSimplifier::formatDc(const std::vector<int> &idxes)
         }
         cout << idx << endl;
         s += (*std::next(table.orderedSymbol.begin(), idx - 1));
-        s += '&';
+        s += " & ";
     }
+    s.pop_back();
     s.pop_back();
     return s;
 }
