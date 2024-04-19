@@ -1,11 +1,43 @@
 #include "BoolSimplifier.hpp"
 
 
-bool BoolSimplifier::getNextComb(const std::vector<std::pair<int, int>> &allComb, std::set<int> &idxes) {
-    return false;
+void BoolSimplifier::getCombUtil(
+    std::vector<std::vector<int>> &combs,
+    std::vector<int> &current,
+    int idx,
+    const std::vector<std::pair<int, int>> &allIdxes)
+{
+
+    if (!current.empty())
+        combs.emplace_back(current.begin(), current.end());
+
+    if (current.size() == numX) {
+        return;
+    }
+    
+    if (idx == allIdxes.size()) {
+        return;
+    }
+    
+    // TODO: 跳过重复的， 例如 (a & !b) == (!a & b)
+    current.push_back(allIdxes[idx].first);
+    getCombUtil(combs, current, idx + 1, allIdxes);
+    current.pop_back();
+    current.push_back(allIdxes[idx].second);
+    getCombUtil(combs, current, idx + 1, allIdxes);
+    current.pop_back();
+    getCombUtil(combs, current, idx + 1, allIdxes);
 }
 
-void BoolSimplifier::formatInputIneqnsAsLP(std::set<int> &idxes)
+void BoolSimplifier::getCombs(
+    std::vector<std::vector<int>> &combs, 
+    const std::vector<std::pair<int, int>> &allIdxes) 
+{
+    std::vector<int> current;
+    getCombUtil(combs, current, 0, allIdxes);
+}
+
+void BoolSimplifier::formatInputIneqnsAsLP(std::vector<int> &idxes)
 {
     std::ofstream outfile (tmpFileName);
 
@@ -22,7 +54,7 @@ void BoolSimplifier::formatInputIneqnsAsLP(std::set<int> &idxes)
         lp += ": ";
         lp += vIneqns[abs(i) - 1];
         lp += '\n';
-
+   
         ++cnt;
     } 
 
@@ -37,10 +69,22 @@ void BoolSimplifier::formatInputIneqnsAsLP(std::set<int> &idxes)
 string BoolSimplifier::simplifyBoolExp(void)
 {
     findDC();
+
+    MintermCalculator cDcs(sDcs);
+
+    MintermVector vDc = cDcs.calculate();
+    MintermVector vExp = cSource.calculate();
+
+    std::vector<uint8_t> on {vExp.begin(), vExp.end()};
+    std::vector<uint8_t> dcc {vDc.begin(), vDc.end()};
+    auto solution = minbool::minimize_boolean<5>(on, dcc);
+
+    for (auto& term : solution)
+        std::cout << term << std::endl;
     return "";
 }
 
-string BoolSimplifier::checkSubModel(std::set<int> &idxes)
+string BoolSimplifier::checkSubModel(std::vector<int> &idxes)
 {
     formatInputIneqnsAsLP(idxes);
     highs.readModel(tmpFileName);
@@ -66,32 +110,61 @@ string BoolSimplifier::checkSubModel(std::set<int> &idxes)
     }
     return "";
 }
-
-string BoolSimplifier::findDC(void)
+ 
+void BoolSimplifier::findDC(void)
 {
-    std::vector<std::pair<int, int>> allCombs;
-    auto getAllCombs = 
-    [&](std::vector<std::pair<int, int>> &allCombs) 
+    std::vector<std::pair<int, int>> allIdxes;
+    auto getAllIdxes = 
+    [&](std::vector<std::pair<int, int>> &allIdxes) 
     {
         for (int i = 0; i < highs.getNumRow(); ++i)
         {
-            allCombs.emplace_back(i + 1, -(i + 1));
+            allIdxes.emplace_back(i + 1, -(i + 1));
         }   
     };
-    getAllCombs(allCombs);
+    getAllIdxes(allIdxes);
     
-    std::set<int> idxes = {1, -2};
+    //std::set<int> idxes = {1, -2};
     string sDcs = "";
-    do {
-        sDcs += checkSubModel(idxes);
-        
-    } while (getNextComb(allCombs, idxes));
-        
-    return "";
+
+    std::vector<std::vector<int>> combs;
+    getCombs(combs, allIdxes);
+
+    for (auto idxes : combs) 
+    {
+        for (int i : idxes) 
+        {
+            cout << i << ",";
+        }
+        cout << endl;
+        string token = checkSubModel(idxes);
+        if (token.empty()) {
+            continue;
+        }
+        sDcs += token;
+        sDcs += "+";
+    }
+    
+    sDcs.pop_back();
 }
 
 
-string BoolSimplifier::formatDc(const std::set<int> &idxes) {
-    for (int idx : idxes)
-    return "";
+string BoolSimplifier::formatDc(const std::vector<int> &idxes) 
+{
+    SymbolTable table = cSource.getSymbolTable();
+    
+    string s = "";
+    for (int idx : idxes) 
+    {
+        if (idx < 0) 
+        {
+            s += '!';
+            idx *= -1;
+        }
+        cout << idx << endl;
+        s += (*std::next(table.orderedSymbol.begin(), idx - 1));
+        s += '&';
+    }
+    s.pop_back();
+    return s;
 }

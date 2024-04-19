@@ -40,12 +40,22 @@ public:
     MintermCalculator cSource;
 
 private:
-    string findDC(void);
-    void formatInputIneqnsAsLP(std::set<int> &idxes);
-    string checkSubModel(std::set<int> &idxes);
-    bool getNextComb(const std::vector<std::pair<int, int>> &allComb, std::set<int> &idxes);
-    string formatDc(const std::set<int> &idxes);
+    void findDC(void);
+    void formatInputIneqnsAsLP(std::vector<int> &idxes);
+    string checkSubModel(std::vector<int> &idxes);
+    void getCombs(std::vector<std::vector<int>> &combs, const std::vector<std::pair<int, int>> &allIdxes);
+    string formatDc(const std::vector<int> &idxes);
+    
+    void 
+    getCombUtil
+    (
+        std::vector<std::vector<int>> &combs,
+        std::vector<int> &current,
+        int idx,
+        const std::vector<std::pair<int, int>> &allIdxes
+    );
 
+    int numX = 3;
     Highs highs;
     const char* tmpFileName = "input.lp";
     const double offset = std::numeric_limits<double>::epsilon();

@@ -29,6 +29,7 @@ int main() {
     {
         std::getline(cin, simp.vIneqns[i]);
     } 
+    cout << endl;
 
     string result = simp.simplifyBoolExp();
 
