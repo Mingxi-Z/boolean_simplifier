@@ -6,6 +6,7 @@ set(DCMAKE_TOOLCHAIN_FILE "conan_toolchain.cmake")
 
 find_package(Boost)
 find_package(highs)
+find_package(glpk)
 
 add_executable(boolean_simplify main.cpp)
 target_sources(boolean_simplify PRIVATE BoolSimplifier.hpp)
@@ -31,5 +32,6 @@ target_sources(boolean_simplify PRIVATE minbool/minbool.h)
 
 target_link_libraries(${PROJECT_NAME} boost::boost)
 target_link_libraries(${PROJECT_NAME} highs::highs)
+target_link_libraries(${PROJECT_NAME} glpk::glpk)
 
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS} -g")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DEBUG")

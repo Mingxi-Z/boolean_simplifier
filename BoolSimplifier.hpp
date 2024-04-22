@@ -6,6 +6,7 @@
 #include <string>
 #include <stdlib.h>
 #include <Highs.h>
+#include <glpk.h>
 #include "MCDC/mcdc/Include/mcdc.hpp"
 #include "minbool/minbool.h"
 
@@ -58,6 +59,7 @@ private:
     int numX = 3;
     int numRows = -1;
     Highs highs;
+    glp_prob *P = glp_create_prob();
     const char* tmpFileName = "input.lp";
     const double offset = std::numeric_limits<double>::epsilon();
     std::set<int> idxToNegate;

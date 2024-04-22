@@ -1,4 +1,5 @@
 #include "BoolSimplifier.hpp"
+#include <climits>
 
 
 void BoolSimplifier::getCombUtil(
@@ -41,7 +42,7 @@ void BoolSimplifier::formatInputIneqnsAsLP(std::vector<int> &idxes)
 {
     std::ofstream outfile (tmpFileName);
 
-    std::string lp = "Minimize\nobj: x + y\nSubject To\n";
+    std::string lp = "Minimize\nobj: a \nSubject To\n";
 
     int cnt = 0;
     for (int i : idxes) 
@@ -68,12 +69,15 @@ void BoolSimplifier::formatInputIneqnsAsLP(std::vector<int> &idxes)
 
 string BoolSimplifier::simplifyBoolExp(void)
 {
+    // highs.setOptionValue("primal_feasibility_tolerance", "1e-9");
     std::vector<int> allIdx(nVar);
     iota(allIdx.begin(), allIdx.end(), 1);
     formatInputIneqnsAsLP(allIdx);
-    highs.readModel(tmpFileName);
-    numRows = highs.getNumRow();
-
+    glp_read_lp(P, nullptr, tmpFileName);
+    // highs.readModel(tmpFileName);
+    // numRows = highs.getNumRow();
+    numRows = glp_get_num_rows(P);
+    
     findDC();
 
     MintermCalculator cDcs(sDcs);
@@ -96,25 +100,44 @@ string BoolSimplifier::simplifyBoolExp(void)
 string BoolSimplifier::checkSubModel(std::vector<int> &idxes)
 {
     formatInputIneqnsAsLP(idxes);
-    highs.readModel(tmpFileName);
+    glp_read_lp(P, nullptr, tmpFileName);
+    int colNum = glp_get_num_cols(P);
 
-    HighsLp model = highs.getLp();
 
+    // highs.readModel(tmpFileName);
+
+    // HighsLp model = highs.getLp();
 
     // Reverse the row with negative index
     for (int rowIdx : idxToNegate) 
-    {
-        model.row_lower_[rowIdx] = model.row_upper_[rowIdx] + offset; 
-        model.row_upper_[rowIdx] = std::numeric_limits<int>::max();
+    {   
+        double newLo = 0;
+        double newUb = 0;
+        double lo = glp_get_row_lb(P, rowIdx + 1);
+        newUb = (lo == -DBL_MAX) ? DBL_MAX : (lo - offset);
+        double uB = glp_get_row_ub(P, rowIdx + 1);
+        newLo = (uB == DBL_MAX) ? -DBL_MAX : (uB + offset);
+        glp_set_row_bnds(P, rowIdx + 1, GLP_DB, newLo, newUb);
+        // model.row_lower_[rowIdx] = (model.row_upper_[rowIdx] + offset); 
+        // model.row_upper_[rowIdx] = std::numeric_limits<double>::infinity();
+    }
+
+    for (int j = 2; j < colNum + 1; ++j) {
+        string name = glp_get_col_name(P, j);
+        int lb = glp_get_col_lb(P, j);
+        int ub = glp_get_col_ub(P, j);
+        glp_set_col_bnds(P, j, GLP_FR, lb, ub);
     }
     idxToNegate = {};
-    highs.passModel(model);
+    // highs.passModel(model);
 
-    HighsStatus s = highs.run();
-    assert(s == HighsStatus::kOk);
+    // HighsStatus s = highs.run();
+    int result = glp_exact(P, nullptr);
+    //assert(result == 0);
 
-    HighsModelStatus x = highs.getModelStatus();
-    if (x == HighsModelStatus::kInfeasible) 
+    // HighsModelStatus x = highs.getModelStatus();
+    int status = glp_get_status(P);
+    if (status == GLP_INFEAS || status == GLP_NOFEAS) 
     {
         return formatDc(idxes);
     }
