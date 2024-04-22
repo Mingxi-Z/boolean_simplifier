@@ -1,2 +1,5 @@
 CMakeUserPresets.json
 build
+.vscode
+.vs
+CMakePresets.json
