@@ -87,9 +87,9 @@ string BoolSimplifier::simplifyBoolExp(void)
     numRows = glp_get_num_rows(P);
     
     findDC();
+    cout << sDcs << endl;
 
     MintermCalculator cDcs(sDcs);
-
     MintermVector vDc = cDcs.calculate();
     MintermVector vExp = cSource.calculate();
 
@@ -207,21 +207,35 @@ string BoolSimplifier::checkSubModel(std::vector<int> &idxes)
     // }
 
     for (int j = 2; j <= colNum; ++j) {
+        // set variable range from -inf to inf
         glp_set_col_bnds(P, j, GLP_FR, 0, 0);
     }
 
     // Reverse the row with negative index
+    double *rowVal = (double *) malloc(sizeof(double) * (colNum + 1));
+    int *rowIdxes = (int *) malloc(sizeof(double) * (colNum + 1)); 
     for (int rowIdx : idxToNegate) 
     {   
-        double lo = glp_get_row_lb(P, rowIdx + 1);
-        double newUb = 
-            ((DBL_MAX - abs(lo)) <= std::numeric_limits<double>::epsilon()) ? DBL_MAX : (lo - 1e-6);
-        double uB = glp_get_row_ub(P, rowIdx + 1);
-        double newLo = 
-            (abs(DBL_MAX - abs(uB)) <= std::numeric_limits<double>::epsilon()) ? -DBL_MAX : (uB + 1e-6);
-        glp_set_row_bnds(P, rowIdx + 1, GLP_DB, newLo, newUb);
-    }
+        int len = glp_get_mat_row(P, rowIdx + 1, rowIdxes, rowVal); 
 
+        for (int i = 1; i <= len; ++i) {
+            rowVal[i] *= -1;
+        }
+
+        glp_set_mat_row(P, rowIdx + 1, len, rowIdxes, rowVal);
+
+        // double lo = glp_get_row_lb(P, rowIdx + 1);
+        // double newUb = 
+        //     ((DBL_MAX - abs(lo)) <= std::numeric_limits<double>::epsilon()) ? DBL_MAX : (lo - 1e-6);
+        // double uB = glp_get_row_ub(P, rowIdx + 1);
+        // double newLo = 
+        //     (abs(DBL_MAX - abs(uB)) <= std::numeric_limits<double>::epsilon()) ? -DBL_MAX : (uB + 1e-6);
+        double newUb = (glp_get_row_ub(P, rowIdx + 1) + 1e-6) * -1;
+        glp_set_row_bnds(P, rowIdx + 1, GLP_UP, 0, newUb);
+    }
+    free(rowVal);
+    free(rowIdxes);
+    
     idxToNegate.clear();
     ++glpCalls;
     int result = glp_exact(P, nullptr);

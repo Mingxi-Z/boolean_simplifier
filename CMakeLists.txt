@@ -34,4 +34,4 @@ target_link_libraries(${PROJECT_NAME} boost::boost)
 target_link_libraries(${PROJECT_NAME} highs::highs)
 target_link_libraries(${PROJECT_NAME} glpk::glpk)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /DEBUG")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
