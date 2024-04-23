@@ -17,6 +17,7 @@ using std::endl;
 class BoolSimplifier {
 
 public:
+    BoolSimplifier() = default;
     BoolSimplifier(string source): m_source(source), cSource(source){
         if (!cSource.runCompiler())
         {
@@ -35,8 +36,9 @@ public:
     string simplifyBoolExp(void);
 
     int nVar = -1;
-    string m_source;
-    string sDcs;
+    int glpCalls = 0;
+    string m_source = "";
+    string sDcs = "";
     std::vector<string> vIneqns;
     MintermCalculator cSource;
 
@@ -44,23 +46,34 @@ private:
     void findDC(void);
     void formatInputIneqnsAsLP(std::vector<int> &idxes);
     string checkSubModel(std::vector<int> &idxes);
-    void getCombs(std::vector<std::vector<int>> &combs, const std::vector<std::pair<int, int>> &allIdxes);
+    void getCombs(const std::vector<std::pair<int, int>> &allIdxes);
+    void getCombs(const std::vector<int> &allIdxes); 
     string formatDc(const std::vector<int> &idxes);
-    
+    bool isTrivSat(int colIdx);
+    bool subIsDc(std::vector<int> &idxes);
+
     void 
     getCombUtil
     (
-        std::vector<std::vector<int>> &combs,
         std::vector<int> &current,
         int idx,
         const std::vector<std::pair<int, int>> &allIdxes
     );
 
+    void 
+    getCombUtil
+    (
+        std::vector<int> &current,
+        int idx,
+        const std::vector<int> &allIdxes
+    );
+
     int numX = 3;
     int numRows = -1;
-    Highs highs;
+    
     glp_prob *P = glp_create_prob();
-    const char* tmpFileName = "input.lp";
+    char tmpFileName[256];
     const double offset = std::numeric_limits<double>::epsilon();
     std::set<int> idxToNegate;
+    std::unordered_set<string> tokenDcs;
 };

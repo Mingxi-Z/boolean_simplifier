@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <cfloat>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -19,23 +20,38 @@ void test_glpk() {
     // glp_smcp *param = nullptr;
     // glp_init_smcp(param);
     glp_read_lp(P, nullptr, "../../ex.lp");
-    
+
     // param->tol_bnd = 1e-9;
     int result = glp_exact(P, nullptr);
     
     cout << glp_get_status(P) << endl;
+    
+    double lo = glp_get_row_lb(P, 1);
+    double newUb = 
+        ((DBL_MAX - abs(lo)) <= std::numeric_limits<double>::epsilon()) ? DBL_MAX : (lo - 1e-7);
+    double uB = glp_get_row_ub(P, 1);
+    double newLo = 
+        (abs(DBL_MAX - abs(uB)) <= std::numeric_limits<double>::epsilon()) ? -DBL_MAX : (uB + 1e-7);
+    glp_set_row_bnds(P, 1, GLP_DB, newLo, newUb);
+
+    double cUb = glp_get_col_ub(P, 2);
+    double cLo = glp_get_col_lb(P, 2);
+
+    glp_set_col_bnds(P, 2, GLP_FR, 0, 0);
+    cUb = glp_get_col_ub(P, 2);
+    cLo = glp_get_col_lb(P, 2);
+
+    result = glp_exact(P, nullptr);
 }
 
 int test2(){
-    // (void) getInput();
-    string sExp = "a & b & c | !c & d & e";
+    string sExp = "a & b & c & d & e & f & g | i & b & c & h &!f & d & g | b &!a & c & e & f & g | b&c&j&d&k&e&f&g | i&b&c&j&d&e&!f&g";
     MintermCalculator cExp(sExp);
     MintermVector vExp = cExp.calculate();
-
-    string sDc = "!a & !d + !b & !e + a & c & !e + !a & !c & e + b & c & !d + !b & !c & d";
-    // a & !b & !e +a & c & !e +!a & b & !d +!a & !b & !c +!a & !b & !d +!a & !b & !e +!a & c & !d +!a & !c & !d +!a & !c & e +!a & !d +!a & !d & e +!a & !d & !e +!a & !d +!b & c & !e +!b & !c & !e +!b & d & !e +!b & !d & !e +!b & !e +c & !d & !e 
+    string sDc = "";
     MintermCalculator cDc(sDc);
     MintermVector vDc = cDc.calculate();
+
     for (int i : vExp) {
         std::cout << i << ", ";
     }
@@ -46,9 +62,11 @@ int test2(){
     }
     std::cout << std::endl;
 
-    std::vector<uint8_t> on {vExp.begin(), vExp.end()};
-    std::vector<uint8_t> dcc {vDc.begin(), vDc.end()};
-    auto solution = minbool::minimize_boolean<5>(on, dcc);
+    std::vector<uint16_t> on {vExp.begin(), vExp.end()};
+    std::vector<uint16_t> dcc {vDc.begin(), vDc.end()};
+    // std::vector<uint8_t> dcc = {0, 1, 2, 4, 5, 6, 8, 9, 12, 13, 16, 18, 20, 22};
+    auto solution = minbool::minimize_boolean<11>(on, dcc);
+
 
     for (auto& term : solution)
         std::cout << term << std::endl;
@@ -68,21 +86,24 @@ int main() {
         test2();
         return 0;
     }
-    BoolSimplifier simp(source);
+    BoolSimplifier *simp = new BoolSimplifier(source);
 
-    if (simp.nVar == -1)
+    if (simp->nVar == -1)
         return 1;
     
     cout << "Please enter inequalities in \" x_1 + x_2 <= C \" form \n";
-    for (int i = 0; i < simp.nVar; ++i) 
+    for (int i = 0; i < simp->nVar; ++i) 
     {
-        std::getline(cin, simp.vIneqns[i]);
+        std::getline(cin, simp->vIneqns[i]);
     } 
     cout << endl;
 
-    string result = simp.simplifyBoolExp();
+    string result = simp->simplifyBoolExp();
 
     cout << result << endl;
+
+    cout << simp->glpCalls << endl;
+    delete simp;
 }
 
 

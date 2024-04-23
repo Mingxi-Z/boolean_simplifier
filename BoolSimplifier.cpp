@@ -1,16 +1,22 @@
 #include "BoolSimplifier.hpp"
-#include <climits>
+#include <cfloat>
+#include <fstream>
 
 
 void BoolSimplifier::getCombUtil(
-    std::vector<std::vector<int>> &combs,
     std::vector<int> &current,
     int idx,
     const std::vector<std::pair<int, int>> &allIdxes)
 {
 
-    if (current.size() > 1)
-        combs.emplace_back(current.begin(), current.end());
+    if (current.size() > 1) {
+        string token = checkSubModel(current);
+        if (!token.empty() & !tokenDcs.count(token)) {
+            tokenDcs.insert(token);
+            sDcs += token;
+            sDcs += "+";
+        }
+    }
 
     if (current.size() == numX) {
         return;
@@ -22,36 +28,39 @@ void BoolSimplifier::getCombUtil(
     
     // TODO: 跳过重复的， 例如 (a & !b) == (!a & b)
     current.push_back(allIdxes[idx].first);
-    getCombUtil(combs, current, idx + 1, allIdxes);
+    getCombUtil(current, idx + 1, allIdxes);
     current.pop_back();
     current.push_back(allIdxes[idx].second);
-    getCombUtil(combs, current, idx + 1, allIdxes);
+    getCombUtil(current, idx + 1, allIdxes);
     current.pop_back();
-    getCombUtil(combs, current, idx + 1, allIdxes);
+    getCombUtil(current, idx + 1, allIdxes);
 }
 
 void BoolSimplifier::getCombs(
-    std::vector<std::vector<int>> &combs, 
     const std::vector<std::pair<int, int>> &allIdxes) 
 {
     std::vector<int> current;
-    getCombUtil(combs, current, 0, allIdxes);
+    getCombUtil(current, 0, allIdxes);
 }
 
 void BoolSimplifier::formatInputIneqnsAsLP(std::vector<int> &idxes)
-{
-    std::ofstream outfile (tmpFileName);
+{   
+    if (std::tmpnam(tmpFileName) == nullptr) {
+        return;
+    }
 
-    std::string lp = "Minimize\nobj: a \nSubject To\n";
+    std::ofstream outfile(tmpFileName);
+
+    std::string lp = "Minimize\nobj: z23456 \nSubject To\n";
 
     int cnt = 0;
     for (int i : idxes) 
     {
-        if (i < 0) {
+        if (i < 0) 
             idxToNegate.insert(cnt);
-        }
+        
         lp += 'c';
-        lp += ('0' + abs(i));
+        lp += (std::to_string(abs(i)));
         lp += ": ";
         lp += vIneqns[abs(i) - 1];
         lp += '\n';
@@ -63,8 +72,8 @@ void BoolSimplifier::formatInputIneqnsAsLP(std::vector<int> &idxes)
 
     cout << lp << endl;
     outfile << lp;
-
     outfile.close();
+    
 }
 
 string BoolSimplifier::simplifyBoolExp(void)
@@ -74,8 +83,7 @@ string BoolSimplifier::simplifyBoolExp(void)
     iota(allIdx.begin(), allIdx.end(), 1);
     formatInputIneqnsAsLP(allIdx);
     glp_read_lp(P, nullptr, tmpFileName);
-    // highs.readModel(tmpFileName);
-    // numRows = highs.getNumRow();
+
     numRows = glp_get_num_rows(P);
     
     findDC();
@@ -85,57 +93,140 @@ string BoolSimplifier::simplifyBoolExp(void)
     MintermVector vDc = cDcs.calculate();
     MintermVector vExp = cSource.calculate();
 
-    std::vector<uint8_t> on {vExp.begin(), vExp.end()};
-    std::vector<uint8_t> dcc {vDc.begin(), vDc.end()};
-    // dcc.erase(dcc.begin() + 3);
-    // dcc.pop_back();
+    std::unordered_set<int> vDcSet(vDc.begin(), vDc.end());
 
-    auto solution = minbool::minimize_boolean<5>(on, dcc);
+    for (int i = 0; i < vExp.size(); ++i)
+    {
+        if (vDcSet.count(vExp[i])) {
+            vExp.erase(vExp.begin() + i);
+            --i;
+        }
+    }
+    
+    std::vector<uint16_t> on {vExp.begin(), vExp.end()};
+    std::vector<uint16_t> dcc {vDc.begin(), vDc.end()};
+
+    auto solution = minbool::minimize_boolean<11>(on, dcc);
 
     for (auto& term : solution)
         std::cout << term << std::endl;
     return "";
 }
 
+bool BoolSimplifier::isTrivSat(int colIdx) 
+{
+    int size = glp_get_num_rows(P);
+    
+    double *colVal = (double *) malloc(sizeof(double) * (size + 1));
+    int len = glp_get_mat_col(P, colIdx, nullptr, colVal);
+
+    if (len == 1)
+    {
+        free(colVal);
+        return true;
+    }
+
+    for (int i = 1; i <= len; ++i) 
+    {
+        if (colVal[i] * colVal[i + 1] < 0)
+        {
+            free(colVal);
+            return false;
+        }
+    }
+    free(colVal);
+    return true;
+}
+
+
+// void BoolSimplifier::getCombUtil(
+//     std::vector<std::vector<int>> &combs,
+//     std::vector<int> &current,
+//     int idx,
+//     const std::vector<int> &allIdxes)
+// {
+
+//     if (current.size() > 1)
+//         combs.emplace_back(current.begin(), current.end());
+
+//     if (current.size() == numX) {
+//         return;
+//     }
+    
+//     if (idx == allIdxes.size()) {
+//         return;
+//     }
+    
+//     // TODO: 跳过重复的， 例如 (a & !b) == (!a & b)
+//     current.push_back(allIdxes[idx]);
+//     getCombUtil(combs, current, idx + 1, allIdxes);
+//     current.pop_back();
+//     getCombUtil(combs, current, idx + 1, allIdxes);
+// }
+
+// void BoolSimplifier::getCombs(
+//     std::vector<std::vector<int>> &combs, 
+//     const std::vector<int> &allIdxes) 
+// {
+//     std::vector<int> current;
+//     getCombUtil(combs, current, 0, allIdxes);
+// }
+
+// bool BoolSimplifier::subIsDc(std::vector<int> &idxes)
+// {
+//     std::vector<std::vector<int>> combs;
+//     getCombs(combs, idxes);
+    
+//     for (const auto &comb : combs) {
+//         string token = formatDc(comb);
+//         if (tokenDcs.count(token))
+//             return true;
+//     }
+
+//     return false;
+// }
+
 string BoolSimplifier::checkSubModel(std::vector<int> &idxes)
 {
+
     formatInputIneqnsAsLP(idxes);
-    glp_read_lp(P, nullptr, tmpFileName);
+    int r = glp_read_lp(P, nullptr, tmpFileName);
+    assert(r == 0);
     int colNum = glp_get_num_cols(P);
 
+    for (int j = 2; j <= colNum; ++j) {
+        if (isTrivSat(j)) {
+            idxToNegate.clear();
+            return "";
+        }
+    }
 
-    // highs.readModel(tmpFileName);
+    // if (subIsDc(idxes)) {
+    //     idxToNegate = {};
+    //     return "";
+    // }
 
-    // HighsLp model = highs.getLp();
+    for (int j = 2; j <= colNum; ++j) {
+        glp_set_col_bnds(P, j, GLP_FR, 0, 0);
+    }
 
     // Reverse the row with negative index
     for (int rowIdx : idxToNegate) 
     {   
-        double newLo = 0;
-        double newUb = 0;
         double lo = glp_get_row_lb(P, rowIdx + 1);
-        newUb = (lo == -DBL_MAX) ? DBL_MAX : (lo - offset);
+        double newUb = 
+            ((DBL_MAX - abs(lo)) <= std::numeric_limits<double>::epsilon()) ? DBL_MAX : (lo - 1e-6);
         double uB = glp_get_row_ub(P, rowIdx + 1);
-        newLo = (uB == DBL_MAX) ? -DBL_MAX : (uB + offset);
+        double newLo = 
+            (abs(DBL_MAX - abs(uB)) <= std::numeric_limits<double>::epsilon()) ? -DBL_MAX : (uB + 1e-6);
         glp_set_row_bnds(P, rowIdx + 1, GLP_DB, newLo, newUb);
-        // model.row_lower_[rowIdx] = (model.row_upper_[rowIdx] + offset); 
-        // model.row_upper_[rowIdx] = std::numeric_limits<double>::infinity();
     }
 
-    for (int j = 2; j < colNum + 1; ++j) {
-        string name = glp_get_col_name(P, j);
-        int lb = glp_get_col_lb(P, j);
-        int ub = glp_get_col_ub(P, j);
-        glp_set_col_bnds(P, j, GLP_FR, lb, ub);
-    }
-    idxToNegate = {};
-    // highs.passModel(model);
-
-    // HighsStatus s = highs.run();
+    idxToNegate.clear();
+    ++glpCalls;
     int result = glp_exact(P, nullptr);
     //assert(result == 0);
 
-    // HighsModelStatus x = highs.getModelStatus();
     int status = glp_get_status(P);
     if (status == GLP_INFEAS || status == GLP_NOFEAS) 
     {
@@ -146,39 +237,23 @@ string BoolSimplifier::checkSubModel(std::vector<int> &idxes)
  
 void BoolSimplifier::findDC(void)
 {
-    std::vector<std::pair<int, int>> allIdxes;
+    auto *allIdxes = new std::vector<std::pair<int, int>>(numRows);
     auto getAllIdxes = 
     [&](std::vector<std::pair<int, int>> &allIdxes) 
     {
         for (int i = 0; i < numRows; ++i)
         {
-            allIdxes.push_back({i + 1, -(i + 1)});
+            allIdxes[i] = {i + 1, -(i + 1)};
         }   
     };
-    getAllIdxes(allIdxes);
+    getAllIdxes(*allIdxes);
     
-    //std::set<int> idxes = {1, -2};
     sDcs = "";
-
     std::vector<std::vector<int>> combs;
-    getCombs(combs, allIdxes);
-
-    for (auto idxes : combs) 
-    {
-        for (int i : idxes) 
-        {
-            cout << i << ",";
-        }
-        cout << endl;
-        string token = checkSubModel(idxes);
-        if (token.empty()) {
-            continue;
-        }
-        sDcs += token;
-        sDcs += "+";
-    }
-    
+    getCombs(*allIdxes);
     sDcs.pop_back();
+   
+    delete allIdxes;
 }
 
 
