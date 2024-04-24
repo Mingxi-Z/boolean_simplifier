@@ -47,11 +47,10 @@ private:
     void formatInputIneqnsAsLP(std::vector<int> &idxes);
     string checkSubModel(std::vector<int> &idxes);
     void getCombs(const std::vector<std::pair<int, int>> &allIdxes);
-    void getCombs(const std::vector<int> &allIdxes); 
     string formatDc(const std::vector<int> &idxes);
     bool isTrivSat(int colIdx);
     bool subIsDc(std::vector<int> &idxes);
-
+    bool varAppearOnce(void);
     void 
     getCombUtil
     (
@@ -60,7 +59,7 @@ private:
         const std::vector<std::pair<int, int>> &allIdxes
     );
 
-    void 
+    bool 
     getCombUtil
     (
         std::vector<int> &current,
@@ -68,7 +67,7 @@ private:
         const std::vector<int> &allIdxes
     );
 
-    int numX = 3;
+    int numCols = -1;
     int numRows = -1;
     
     glp_prob *P = glp_create_prob();

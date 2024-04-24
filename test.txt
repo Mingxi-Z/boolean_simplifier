@@ -1,6 +1,12 @@
-a & b & c | !c & d & e
--x <= 0
-y <= 5
-x - y <= 0
-x <= 5
--y <= 0
+a&b&c&d&e&f&g&h | i&b&c&h&!f&d&g | b&!a&c&e&f&g | b&c&j&d&k&e&f&g | i&b&c&j&d&e&!f&g
+rtl - rrl <= 160
+-rrl <= -30
+rrl -rrh <= 0
+-pwl <= 0
+pwl - pwh <= 0
+rtl - rrl - pwl <= 10
+rrh + pwh - rth <= -30
+-pwh <= -150
+rtl - rrl <= 150
+rrh - rth <= -180
+pwl <= 150
