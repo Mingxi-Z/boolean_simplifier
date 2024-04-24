@@ -259,5 +259,40 @@ int main() {
         std::transform(EPI.begin(), EPI.end(), final_result.begin(), findVariables); // Final result with only EPIs
     } else { // Else follow Petrick's method for further simplification
         std::vector<std::vector<std::vector<std::string
+
+        std::vector<std::vector<std::string>> P;
+        for (const auto& row : chart) {
+            std::vector<std::string> temp;
+            for (int j : row) {
+                temp.push_back(findVariables(j));
+            }
+            P.push_back(temp);
+        }
+
+        while (P.size() > 1) { // Keep multiplying until we get the SOP form of P
+            P[1] = multiply(P[0], P[1]);
+            P.erase(P.begin());
+        }
+
+        auto minTerm = std::min_element(P[0].begin(), P[0].end(), 
+            [](const std::string& a, const std::string& b) { return a.length() < b.length(); });
+        final_result.push_back(*minTerm);
+
+        for (int i : EPI) {
+            final_result.push_back(findVariables(i));
+        }
     }
+
+    std::cout << "\n\nSolution: F = ";
+    for (const auto& term : final_result) {
+        std::cout << term << " + ";
+    }
+    std::cout << "\b\b "; // To remove the last " + "
+
+    std::cin.get(); // Wait for user to press enter
+    return 0;
+    }
+
+
+
 }
