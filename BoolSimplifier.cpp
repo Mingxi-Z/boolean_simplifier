@@ -85,8 +85,8 @@ string BoolSimplifier::simplifyBoolExp(void)
     glp_read_lp(P, nullptr, tmpFileName);
 
     numRows = glp_get_num_rows(P);
-    numCols = glp_get_num_cols(P);
-    // numCols = 3;
+    // numCols = glp_get_num_cols(P);
+    numCols = 3;
     findDC();
     cout << sDcs << endl;
 
@@ -214,10 +214,10 @@ string BoolSimplifier::checkSubModel(std::vector<int> &idxes)
     int colNum = glp_get_num_cols(P);
 
     // TODO: Theorem 3.3
-    if (subIsDc(idxes)) {
-        idxToNegate.clear();
-        return "";
-    }
+    // if (subIsDc(idxes)) {
+    //     idxToNegate.clear();
+    //     return "";
+    // }
 
     for (int j = 2; j <= colNum; ++j) {
         // set variable range from -inf to inf
