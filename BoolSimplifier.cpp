@@ -76,84 +76,6 @@ void BoolSimplifier::formatInputIneqnsAsLP(std::vector<int> &idxes)
     
 }
 
-string BoolSimplifier::simplifyBoolExp(void)
-{
-    glp_term_out(GLP_OFF);
-    std::vector<int> allIdx(nVar);
-    iota(allIdx.begin(), allIdx.end(), 1);
-    formatInputIneqnsAsLP(allIdx);
-    glp_read_lp(P, nullptr, tmpFileName);
-
-    numRows = glp_get_num_rows(P);
-    // numCols = glp_get_num_cols(P);
-    numCols = 3;
-    findDC();
-    cout << sDcs << endl;
-
-    MintermCalculator cDcs(sDcs);
-    MintermVector vDc = cDcs.calculate();
-    MintermVector vExp = cSource.calculate();
-
-    //DEBUG
-    
-    for (int i : vExp)
-    {
-        cout << i << " ";
-    }
-    cout << endl;
-
-    for (int i : vDc)
-    {
-        cout << i << " ";
-    }
-    cout << endl;
-    
-    std::unordered_set<int> vDcSet(vDc.begin(), vDc.end());
-    for (int i = 0; i < vExp.size(); ++i)
-    {
-        if (vDcSet.count(vExp[i])) {
-            vExp.erase(vExp.begin() + i);
-            --i;
-        }
-    }
-
-    std::vector<uint16_t> on {vExp.begin(), vExp.end()};
-    std::vector<uint16_t> dcc {vDc.begin(), vDc.end()};
-
-    auto solution = minbool::minimize_boolean<11>(on, dcc);
-
-    for (auto& term : solution)
-        std::cout << term << std::endl;
-    return "";
-}
-
-// Theorem 3.2
-bool BoolSimplifier::isTrivSat(int colIdx) 
-{
-    int size = glp_get_num_rows(P);
-    
-    double *colVal = (double *) malloc(sizeof(double) * (size + 1));
-    int len = glp_get_mat_col(P, colIdx, nullptr, colVal);
-
-    // if (len == 1)
-    // {
-    //     free(colVal);
-    //     return true;
-    // }
-
-    for (int i = 1; i <= len; ++i) 
-    {
-        if (colVal[i] * colVal[i + 1] < 0)
-        {
-            free(colVal);
-            return false;
-        }
-    }
-    free(colVal);
-    return true;
-}
-
-
 bool BoolSimplifier::getCombUtil(
     std::vector<int> &current,
     int idx,
@@ -189,6 +111,53 @@ bool BoolSimplifier::subIsDc(std::vector<int> &idxes)
     return getCombUtil(current, 0, idxes);
 }
 
+string BoolSimplifier::formatDc(const std::vector<int> &idxes) 
+{
+    SymbolTable table = cSource.getSymbolTable();
+    
+    string s = "";
+    for (int idx : idxes) 
+    {
+        if (idx < 0) 
+        {
+            s += '!';
+            idx *= -1;
+        }
+        //cout << idx << endl;
+        s += (*std::next(table.orderedSymbol.begin(), idx - 1));
+        s += " & ";
+    }
+    s.pop_back();
+    s.pop_back();
+    return s;
+}
+
+// Theorem 3.2
+bool BoolSimplifier::isTrivSat(int colIdx) 
+{
+    int size = glp_get_num_rows(P);
+    
+    double *colVal = (double *) malloc(sizeof(double) * (size + 1));
+    int len = glp_get_mat_col(P, colIdx, nullptr, colVal);
+
+    // if (len == 1)
+    // {
+    //     free(colVal);
+    //     return true;
+    // }
+
+    for (int i = 1; i <= len; ++i) 
+    {
+        if (colVal[i] * colVal[i + 1] < 0)
+        {
+            free(colVal);
+            return false;
+        }
+    }
+    free(colVal);
+    return true;
+}
+
 // Corollary 3.1
 bool BoolSimplifier::varAppearOnce(void) 
 {
@@ -205,6 +174,7 @@ bool BoolSimplifier::varAppearOnce(void)
     return false;
 }   
 
+// Call glpk to solve the satisfiability of submodel
 string BoolSimplifier::checkSubModel(std::vector<int> &idxes)
 {
 
@@ -242,12 +212,12 @@ string BoolSimplifier::checkSubModel(std::vector<int> &idxes)
     }
     free(rowVal);
     free(rowIdxes);
-
+    // Corollary 3.1
     if (varAppearOnce()) {
         idxToNegate.clear();
         return "";
     }    
-
+    // Theorem 3.2
     for (int j = 2; j <= colNum; ++j) {
         if (isTrivSat(j)) {
             idxToNegate.clear();
@@ -268,6 +238,7 @@ string BoolSimplifier::checkSubModel(std::vector<int> &idxes)
     return "";
 }
  
+// Main routine of finding don't cares
 void BoolSimplifier::findDC(void)
 {
     auto *allIdxes = new std::vector<std::pair<int, int>>(numRows);
@@ -289,24 +260,53 @@ void BoolSimplifier::findDC(void)
     delete allIdxes;
 }
 
-
-string BoolSimplifier::formatDc(const std::vector<int> &idxes) 
+// Main simplification function
+string BoolSimplifier::simplifyBoolExp(void)
 {
-    SymbolTable table = cSource.getSymbolTable();
-    
-    string s = "";
-    for (int idx : idxes) 
+    glp_term_out(GLP_OFF);
+    std::vector<int> allIdx(nVar);
+    iota(allIdx.begin(), allIdx.end(), 1);
+    formatInputIneqnsAsLP(allIdx);
+    glp_read_lp(P, nullptr, tmpFileName);
+
+    numRows = glp_get_num_rows(P);
+    // numCols = glp_get_num_cols(P);
+    numCols = 3;
+    findDC();
+    cout << sDcs << endl;
+
+    MintermCalculator cDcs(sDcs);
+    MintermVector vDc = cDcs.calculate();
+    MintermVector vExp = cSource.calculate();
+
+    //DEBUG
+    for (int i : vExp)
     {
-        if (idx < 0) 
-        {
-            s += '!';
-            idx *= -1;
-        }
-        //cout << idx << endl;
-        s += (*std::next(table.orderedSymbol.begin(), idx - 1));
-        s += " & ";
+        cout << i << " ";
     }
-    s.pop_back();
-    s.pop_back();
-    return s;
+    cout << endl;
+
+    for (int i : vDc)
+    {
+        cout << i << " ";
+    }
+    cout << endl;
+    
+    std::unordered_set<int> vDcSet(vDc.begin(), vDc.end());
+    for (int i = 0; i < vExp.size(); ++i)
+    {
+        if (vDcSet.count(vExp[i])) {
+            vExp.erase(vExp.begin() + i);
+            --i;
+        }
+    }
+
+    std::vector<uint16_t> on {vExp.begin(), vExp.end()};
+    std::vector<uint16_t> dcc {vDc.begin(), vDc.end()};
+
+    auto solution = minbool::minimize_boolean<11>(on, dcc);
+
+    for (auto& term : solution)
+        std::cout << term << std::endl;
+    return "";
 }
