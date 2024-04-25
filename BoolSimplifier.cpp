@@ -11,7 +11,6 @@ void BoolSimplifier::getCombUtil(
     const std::vector<std::pair<int, int>> &allIdxes,
     int lim)
 {
-    std::bit
     if (current.size() > lim) {
         return;
     }
