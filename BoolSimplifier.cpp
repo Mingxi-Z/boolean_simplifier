@@ -5,41 +5,49 @@
 
 
 void BoolSimplifier::getCombUtil(
+    std::vector<std::set<int>> &unSats,
     std::unordered_set<string> &visited,
     std::vector<int> &current,
     int idx,
     const std::vector<std::pair<int, int>> &allIdxes,
     int lim)
 {
-    if (current.size() > lim) {
+    if (current.size() > lim)
         return;
+
+    std::set<int> curSet(current.begin(), current.end());
+    for (auto &st : unSats) 
+    {
+        if (std::includes(curSet.begin(), curSet.end(), st.begin(), st.end()))
+            return;
     }
 
-    if (current.size() > 1) {
+    if (current.size() > 1) 
+    {
         string idxToken = formatDc(current);
         if (!visited.count(idxToken)) {
             visited.insert(idxToken);
             string token = checkSubModel(current);
             if (!token.empty())
             {
+                unSats.push_back(curSet);
                 sDcs += token;
                 sDcs += "+";
             }
         }
     }
 
-    if (idx == allIdxes.size()) {
+    if (idx == allIdxes.size())
         return;
-    }
     
     // TODO: skip duplicate
     current.push_back(allIdxes[idx].first);
-    getCombUtil(visited, current, idx + 1, allIdxes, lim);
+    getCombUtil(unSats, visited, current, idx + 1, allIdxes, lim);
     current.pop_back();
     current.push_back(allIdxes[idx].second);
-    getCombUtil(visited, current, idx + 1, allIdxes, lim);
+    getCombUtil(unSats, visited, current, idx + 1, allIdxes, lim);
     current.pop_back();
-    getCombUtil(visited, current, idx + 1, allIdxes, lim);
+    getCombUtil(unSats, visited, current, idx + 1, allIdxes, lim);
 }
 
 void BoolSimplifier::getCombs(
@@ -47,8 +55,9 @@ void BoolSimplifier::getCombs(
 {
     std::vector<int> current;
     std::unordered_set<string> visited;
+    std::vector<std::set<int>> unSats;
     for (int i = 2; i <= numCols; ++i) {
-        getCombUtil(visited, current, 0, allIdxes, i);
+        getCombUtil(unSats, visited, current, 0, allIdxes, i);
     }
 }
 
@@ -232,10 +241,11 @@ string BoolSimplifier::checkSubModel(std::vector<int> &idxes)
         }
     }
     // DEBUG
-    for (int i : idxes) {
-        cout << i << ", ";
-    }
-    cout << endl;
+    // for (int i : idxes) {
+    //     cout << i << ", ";
+    // }
+    // cout << endl;
+
     idxToNegate.clear();
     ++glpCalls;
     int result = glp_interior(P, nullptr);
@@ -281,8 +291,8 @@ string BoolSimplifier::simplifyBoolExp(void)
     glp_read_lp(P, nullptr, tmpFileName);
 
     numRows = glp_get_num_rows(P);
-    // numCols = std::min(glp_get_num_cols(P), 5);
-    numCols = 3;
+    numCols = std::min(glp_get_num_cols(P) + 1, 5);
+    // numCols = 5;
     findDC();
     cout << sDcs << endl;
 
