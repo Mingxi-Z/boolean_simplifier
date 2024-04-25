@@ -5,7 +5,7 @@
 
 
 void BoolSimplifier::getCombUtil(
-    std::vector<std::set<int>> &unSats,
+    std::vector<std::bitset<100>> &unSats,
     std::unordered_set<string> &visited,
     std::vector<int> &current,
     int idx,
@@ -15,13 +15,21 @@ void BoolSimplifier::getCombUtil(
     if (current.size() > lim)
         return;
 
-    std::set<int> curSet(current.begin(), current.end());
-    for (auto &st : unSats) 
+    std::bitset<100> curSet(0);
+    for (int i : current)
     {
-        if (std::includes(curSet.begin(), curSet.end(), st.begin(), st.end()))
-            return;
+        if (i < 0)
+            curSet.set(100 + i);
+        else 
+            curSet.set(i);
     }
 
+    for (auto &st : unSats) 
+    {
+        if ((st | curSet) == curSet)
+            return;
+    }
+    
     if (current.size() > 1) 
     {
         string idxToken = formatDc(current);
@@ -32,7 +40,7 @@ void BoolSimplifier::getCombUtil(
             {
                 unSats.push_back(curSet);
                 sDcs += token;
-                sDcs += "+";
+                sDcs += "|";
             }
         }
     }
@@ -55,7 +63,7 @@ void BoolSimplifier::getCombs(
 {
     std::vector<int> current;
     std::unordered_set<string> visited;
-    std::vector<std::set<int>> unSats;
+    std::vector<std::bitset<100>> unSats;
     for (int i = 2; i <= numCols; ++i) {
         getCombUtil(unSats, visited, current, 0, allIdxes, i);
     }

@@ -54,7 +54,7 @@ private:
     void 
     getCombUtil
     (
-        std::vector<std::set<int>> &unSats,
+        std::vector<std::bitset<100>> &unSats,
         std::unordered_set<string> &visited,
         std::vector<int> &current,
         int idx,
