@@ -1,46 +1,56 @@
 #include "BoolSimplifier.hpp"
 #include <cfloat>
+#include <bitset>
 #include <fstream>
 
 
 void BoolSimplifier::getCombUtil(
+    std::unordered_set<string> &visited,
     std::vector<int> &current,
     int idx,
-    const std::vector<std::pair<int, int>> &allIdxes)
+    const std::vector<std::pair<int, int>> &allIdxes,
+    int lim)
 {
+    std::bit
+    if (current.size() > lim) {
+        return;
+    }
 
     if (current.size() > 1) {
-        string token = checkSubModel(current);
-        if (!token.empty() & !tokenDcs.count(token)) {
-            tokenDcs.insert(token);
-            sDcs += token;
-            sDcs += "+";
+        string idxToken = formatDc(current);
+        if (!visited.count(idxToken)) {
+            visited.insert(idxToken);
+            string token = checkSubModel(current);
+            if (!token.empty())
+            {
+                sDcs += token;
+                sDcs += "+";
+            }
         }
     }
 
-    if (current.size() == numCols) {
-        return;
-    }
-    
     if (idx == allIdxes.size()) {
         return;
     }
     
-    // TODO: 跳过重复的， 例如 (a & !b) == (!a & b)
+    // TODO: skip duplicate
     current.push_back(allIdxes[idx].first);
-    getCombUtil(current, idx + 1, allIdxes);
+    getCombUtil(visited, current, idx + 1, allIdxes, lim);
     current.pop_back();
     current.push_back(allIdxes[idx].second);
-    getCombUtil(current, idx + 1, allIdxes);
+    getCombUtil(visited, current, idx + 1, allIdxes, lim);
     current.pop_back();
-    getCombUtil(current, idx + 1, allIdxes);
+    getCombUtil(visited, current, idx + 1, allIdxes, lim);
 }
 
 void BoolSimplifier::getCombs(
     const std::vector<std::pair<int, int>> &allIdxes) 
 {
     std::vector<int> current;
-    getCombUtil(current, 0, allIdxes);
+    std::unordered_set<string> visited;
+    for (int i = 2; i <= numCols; ++i) {
+        getCombUtil(visited, current, 0, allIdxes, i);
+    }
 }
 
 void BoolSimplifier::formatInputIneqnsAsLP(std::vector<int> &idxes)
@@ -76,41 +86,6 @@ void BoolSimplifier::formatInputIneqnsAsLP(std::vector<int> &idxes)
     
 }
 
-bool BoolSimplifier::getCombUtil(
-    std::vector<int> &current,
-    int idx,
-    const std::vector<int> &allIdxes)
-{
-
-    if (current.size() > 1)
-    {
-        string token = formatDc(current);
-        if (tokenDcs.count(token))
-            return true;
-    }
-
-    if (current.size() == numCols) {
-        return false;
-    }
-    
-    if (idx == allIdxes.size()) {
-        return false;
-    }
-    
-    // TODO: 跳过重复的， 例如 (a & !b) == (!a & b)
-    current.push_back(allIdxes[idx]);
-    if (getCombUtil(current, idx + 1, allIdxes))
-        return true;
-    current.pop_back();
-    return getCombUtil(current, idx + 1, allIdxes);
-}
-
-bool BoolSimplifier::subIsDc(std::vector<int> &idxes)
-{
-    std::vector<int> current;
-    return getCombUtil(current, 0, idxes);
-}
-
 string BoolSimplifier::formatDc(const std::vector<int> &idxes) 
 {
     SymbolTable table = cSource.getSymbolTable();
@@ -132,6 +107,38 @@ string BoolSimplifier::formatDc(const std::vector<int> &idxes)
     return s;
 }
 
+// Theorem 3.3
+bool BoolSimplifier::unSatDueToSubSet(void)
+{
+    int size = glp_get_num_rows(P);
+    int colNum = glp_get_num_cols(P);
+
+    double *colVal = (double *) malloc(sizeof(double) * (size + 1));
+    for (int j = 2; j <= colNum; ++j) {
+        int len = glp_get_mat_col(P, j, nullptr, colVal);
+        // cout << glp_get_col_name(P, j) << ": ";
+        bool found = true;
+        for (int i = 1; i < len; ++i) 
+        {
+            //cout << colVal[i] << ", ";
+            if (colVal[i] * colVal[i + 1] < 0)
+            {
+                found = false;
+                break;
+            }
+        }
+        //cout << endl;
+        // if there exist rows with coef(x) == 0
+        if (found && len < size)
+        {
+            free(colVal);
+            return true;
+        }
+    }
+    free(colVal);
+    return false;
+}
+
 // Theorem 3.2
 bool BoolSimplifier::isTrivSat(int colIdx) 
 {
@@ -140,13 +147,13 @@ bool BoolSimplifier::isTrivSat(int colIdx)
     double *colVal = (double *) malloc(sizeof(double) * (size + 1));
     int len = glp_get_mat_col(P, colIdx, nullptr, colVal);
 
-    // if (len == 1)
-    // {
-    //     free(colVal);
-    //     return true;
-    // }
+    if (len != size)
+    {
+        free(colVal);
+        return false;
+    }
 
-    for (int i = 1; i <= len; ++i) 
+    for (int i = 1; i < len; ++i) 
     {
         if (colVal[i] * colVal[i + 1] < 0)
         {
@@ -177,17 +184,12 @@ bool BoolSimplifier::varAppearOnce(void)
 // Call glpk to solve the satisfiability of submodel
 string BoolSimplifier::checkSubModel(std::vector<int> &idxes)
 {
+    string token = formatDc(idxes);
 
     formatInputIneqnsAsLP(idxes);
     int r = glp_read_lp(P, nullptr, tmpFileName);
     assert(r == 0);
     int colNum = glp_get_num_cols(P);
-
-    // TODO: Theorem 3.3
-    // if (subIsDc(idxes)) {
-    //     idxToNegate.clear();
-    //     return "";
-    // }
 
     for (int j = 2; j <= colNum; ++j) {
         // set variable range from -inf to inf
@@ -207,7 +209,7 @@ string BoolSimplifier::checkSubModel(std::vector<int> &idxes)
 
         glp_set_mat_row(P, rowIdx + 1, len, rowIdxes, rowVal);
 
-        double newUb = (glp_get_row_ub(P, rowIdx + 1) + 1e-8) * -1;
+        double newUb = (glp_get_row_ub(P, rowIdx + 1) + 1e-5) * -1;
         glp_set_row_bnds(P, rowIdx + 1, GLP_UP, 0, newUb);
     }
     free(rowVal);
@@ -217,23 +219,33 @@ string BoolSimplifier::checkSubModel(std::vector<int> &idxes)
         idxToNegate.clear();
         return "";
     }    
+    //TODO: Theorem 3.3
+    if (unSatDueToSubSet()) {
+        idxToNegate.clear();
+        return "";
+    }
     // Theorem 3.2
     for (int j = 2; j <= colNum; ++j) {
+        //cout << j << ": " << glp_get_col_name(P, j) << endl;
         if (isTrivSat(j)) {
             idxToNegate.clear();
             return "";
         }
     }
-
+    // DEBUG
+    for (int i : idxes) {
+        cout << i << ", ";
+    }
+    cout << endl;
     idxToNegate.clear();
     ++glpCalls;
-    int result = glp_exact(P, nullptr);
+    int result = glp_interior(P, nullptr);
     //assert(result == 0);
-
-    int status = glp_get_status(P);
+    
+    int status = glp_ipt_status(P);
     if (status == GLP_INFEAS || status == GLP_NOFEAS) 
     {
-        return formatDc(idxes);
+        return token;
     }
     return "";
 }
@@ -270,7 +282,7 @@ string BoolSimplifier::simplifyBoolExp(void)
     glp_read_lp(P, nullptr, tmpFileName);
 
     numRows = glp_get_num_rows(P);
-    // numCols = glp_get_num_cols(P);
+    // numCols = std::min(glp_get_num_cols(P), 5);
     numCols = 3;
     findDC();
     cout << sDcs << endl;
@@ -278,6 +290,15 @@ string BoolSimplifier::simplifyBoolExp(void)
     MintermCalculator cDcs(sDcs);
     MintermVector vDc = cDcs.calculate();
     MintermVector vExp = cSource.calculate();
+    
+    std::unordered_set<int> vDcSet(vDc.begin(), vDc.end());
+    for (int i = 0; i < vExp.size(); ++i)
+    {
+        if (vDcSet.count(vExp[i])) {
+            vExp.erase(vExp.begin() + i);
+            --i;
+        }
+    }
 
     //DEBUG
     for (int i : vExp)
@@ -291,15 +312,6 @@ string BoolSimplifier::simplifyBoolExp(void)
         cout << i << " ";
     }
     cout << endl;
-    
-    std::unordered_set<int> vDcSet(vDc.begin(), vDc.end());
-    for (int i = 0; i < vExp.size(); ++i)
-    {
-        if (vDcSet.count(vExp[i])) {
-            vExp.erase(vExp.begin() + i);
-            --i;
-        }
-    }
 
     std::vector<uint16_t> on {vExp.begin(), vExp.end()};
     std::vector<uint16_t> dcc {vDc.begin(), vDc.end()};

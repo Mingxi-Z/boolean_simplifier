@@ -49,22 +49,16 @@ private:
     void getCombs(const std::vector<std::pair<int, int>> &allIdxes);
     string formatDc(const std::vector<int> &idxes);
     bool isTrivSat(int colIdx);
-    bool subIsDc(std::vector<int> &idxes);
+    bool unSatDueToSubSet(void);
     bool varAppearOnce(void);
     void 
     getCombUtil
     (
+        std::unordered_set<string> &visited,
         std::vector<int> &current,
         int idx,
-        const std::vector<std::pair<int, int>> &allIdxes
-    );
-
-    bool 
-    getCombUtil
-    (
-        std::vector<int> &current,
-        int idx,
-        const std::vector<int> &allIdxes
+        const std::vector<std::pair<int, int>> &allIdxes,
+        int lim
     );
 
     int numCols = -1;
@@ -74,5 +68,4 @@ private:
     char tmpFileName[256];
     const double offset = std::numeric_limits<double>::epsilon();
     std::set<int> idxToNegate;
-    std::unordered_set<string> tokenDcs;
 };
