@@ -1,0 +1,15 @@
+a&b&c&d&e&f&g&h&i&j&k&l | a&b&c&d&e&f&g&h&i&j&m&n | a&b&c&d&e&f&g&h&i&j&!m&l&!k&n
+-acl <= 0
+acl - ach <= 0
+-abl <= 0
+abl - abh <= 0
+-cdl <= 0
+cdl - cdh <= 0
+-dal <= 0
+dal - dah <= 0
+-bal <= 0
+bal - bah <= 0
+ach + cdh - abl - bah + dah <= -1e-6
+abh + bah - cah - acl <= 0
+abh + bah - dah - acl - cdl <= -1e-6
+cdh - cah + dah <= 0
