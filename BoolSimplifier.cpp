@@ -354,7 +354,7 @@ string BoolSimplifier::simplifyBoolExp(void)
     
     cout << "Duration: " 
         << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() 
-        << " milisecond(s)"
+        << " millisecond(s)"
         << endl;
     return "";
 }
