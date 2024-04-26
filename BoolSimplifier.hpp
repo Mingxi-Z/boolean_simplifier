@@ -65,6 +65,7 @@ private:
     int numCols = -1;
     int numRows = -1;
     
+    glp_prob *P_total = glp_create_prob();
     glp_prob *P = glp_create_prob();
     char tmpFileName[256];
     const double offset = std::numeric_limits<double>::epsilon();

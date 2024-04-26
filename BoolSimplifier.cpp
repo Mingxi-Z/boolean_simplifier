@@ -235,11 +235,7 @@ string BoolSimplifier::checkSubModel(std::vector<int> &idxes)
         idxToNegate.clear();
         return "";
     }    
-    //TODO: Theorem 3.3
-    if (unSatDueToSubSet()) {
-        idxToNegate.clear();
-        return "";
-    }
+
     // Theorem 3.2
     for (int j = 2; j <= colNum; ++j) {
         //cout << j << ": " << glp_get_col_name(P, j) << endl;
@@ -248,6 +244,13 @@ string BoolSimplifier::checkSubModel(std::vector<int> &idxes)
             return "";
         }
     }
+
+    // Theorem 3.3
+    if (unSatDueToSubSet()) {
+        idxToNegate.clear();
+        return "";
+    }
+    
     // DEBUG
     // for (int i : idxes) {
     //     cout << i << ", ";
@@ -292,20 +295,30 @@ void BoolSimplifier::findDC(void)
 // Main simplification function
 string BoolSimplifier::simplifyBoolExp(void)
 {
+    auto startTime = std::chrono::high_resolution_clock::now();
     glp_term_out(GLP_OFF);
     std::vector<int> allIdx(nVar);
     iota(allIdx.begin(), allIdx.end(), 1);
     formatInputIneqnsAsLP(allIdx);
-    glp_read_lp(P, nullptr, tmpFileName);
+    glp_read_lp(P_total, nullptr, tmpFileName);
 
-    numRows = glp_get_num_rows(P);
-    numCols = std::min(glp_get_num_cols(P) + 1, 5);
+    numRows = glp_get_num_rows(P_total);
+    numCols = std::min(glp_get_num_cols(P_total) + 1, std::min(numRows, 5));
     // numCols = 5;
     findDC();
+    
+    // Dummy string to ensure the order of minterm input correct
+    string dummyHead = formatDc(allIdx);
+    iota(allIdx.begin(), allIdx.end(), - nVar);
+    dummyHead += "&" + formatDc(allIdx);
+    
+    sDcs = dummyHead + "|" + sDcs;
+
     cout << sDcs << endl;
 
     MintermCalculator cDcs(sDcs);
     MintermVector vDc = cDcs.calculate();
+    //vDc.pop_back();
     MintermVector vExp = cSource.calculate();
     
     std::unordered_set<int> vDcSet(vDc.begin(), vDc.end());
@@ -317,13 +330,13 @@ string BoolSimplifier::simplifyBoolExp(void)
         }
     }
 
-    //DEBUG
+    // DEBUG
     for (int i : vExp)
     {
         cout << i << " ";
     }
     cout << endl;
-
+    cout << endl;
     for (int i : vDc)
     {
         cout << i << " ";
@@ -333,9 +346,15 @@ string BoolSimplifier::simplifyBoolExp(void)
     std::vector<uint16_t> on {vExp.begin(), vExp.end()};
     std::vector<uint16_t> dcc {vDc.begin(), vDc.end()};
 
-    auto solution = minbool::minimize_boolean<11>(on, dcc);
+    auto solution = minbool::minimize_boolean<16>(on, dcc);
+    auto endTime = std::chrono::high_resolution_clock::now();
 
     for (auto& term : solution)
         std::cout << term << std::endl;
+    
+    cout << "Duration: " 
+        << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() 
+        << " milisecond(s)"
+        << endl;
     return "";
 }
