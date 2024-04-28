@@ -4,6 +4,64 @@
 #include <fstream>
 
 
+void BoolSimplifier::formatEspressoInput(MintermVector& mintermVector, MintermVector& dontCareVector, const SymbolTable& symbolTable)
+{
+	// So many letter/symbols/variables/conditions/terminals were in the source string, the boolean expression
+	const uint symbolCount{ symbolTable.numberOfSymbols() };
+	// So many line we will show
+	const uint32 maxEvaluations{ bitMask[symbolCount] };
+	// The width of a string containg the decimal equivalent of the biggest number
+	// Needed for formatting
+	const MinTermType maxLengthDecimalEquivalent{ static_cast<MinTermType>((std::log10(maxEvaluations)) + 1) };
+	
+    // if (std::tmpnam(tmpFileName) == nullptr) {
+    //     return;
+    // }
+
+    std::ofstream os("Espresso.in");
+    os << ".i " << symbolCount << endl; // Input number
+    os << ".o " << "1" << endl; // Output number
+
+    // Input Symbols
+    os << ".ilb";
+    for (cchar ch : symbolTable.orderedSymbol)
+    {
+        os << " " << ch;
+    }
+    os << endl;
+
+    // output Symbols
+    os << ".ob F" << endl;
+
+	// Now we ant to show the real data
+	std::bitset<26> b;	// bitset for converting to binary string
+	for (uint i = 0; i < maxEvaluations; ++i)
+	{
+		b = i; // Assign running value to bitset
+		// Check if the running value is in the minterm list
+		// If so, then result is 1 , else 0
+		uint result{ (std::find(mintermVector.begin(), mintermVector.end(), i) != mintermVector.end()) ? 1U : 0U };
+        if (result == 0) 
+            continue;
+		// Print decimal equivalent of running variable, the bitset and the result
+		os << b.to_string().substr(26 - symbolCount) << " " << '1' << '\n';
+	}
+
+    for (uint i = 0; i < maxEvaluations; ++i)
+	{
+		b = i; // Assign running value to bitset
+		// Check if the running value is in the minterm list
+		// If so, then result is 1 , else 0
+		uint result{ (std::find(dontCareVector.begin(), dontCareVector.end(), i) != dontCareVector.end()) ? 1U : 0U };
+        if (result == 0) 
+            continue;
+		// Print decimal equivalent of running variable, the bitset and the result
+		os << b.to_string().substr(26 - symbolCount) << " " << '-' << '\n';
+	}
+    os << ".e" << endl;
+    os.close();
+}
+
 void BoolSimplifier::getCombUtil(
     std::vector<std::bitset<100>> &unSats,
     std::unordered_set<string> &visited,
@@ -343,6 +401,9 @@ string BoolSimplifier::simplifyBoolExp(void)
     }
     cout << endl;
 
+    formatEspressoInput(vExp, vDc, cSource.getSymbolTable());
+
+
     std::vector<uint16_t> on {vExp.begin(), vExp.end()};
     std::vector<uint16_t> dcc {vDc.begin(), vDc.end()};
 
@@ -356,5 +417,7 @@ string BoolSimplifier::simplifyBoolExp(void)
         << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() 
         << " millisecond(s)"
         << endl;
+    
+    
     return "";
 }

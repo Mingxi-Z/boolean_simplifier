@@ -62,6 +62,14 @@ private:
         int lim
     );
 
+    void 
+    formatEspressoInput
+    (
+        MintermVector& mintermVector, 
+        MintermVector& dontCareVector, 
+        const SymbolTable& symbolTable 
+    );
+
     int numCols = -1;
     int numRows = -1;
     
