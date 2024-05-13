@@ -351,7 +351,7 @@ void BoolSimplifier::findDC(void)
 }
 
 // Main simplification function
-string BoolSimplifier::simplifyBoolExp(void)
+void BoolSimplifier::simplifyBoolExp(void)
 {
     auto startTime = std::chrono::high_resolution_clock::now();
     glp_term_out(GLP_OFF);
@@ -361,7 +361,7 @@ string BoolSimplifier::simplifyBoolExp(void)
     glp_read_lp(P_total, nullptr, tmpFileName);
 
     numRows = glp_get_num_rows(P_total);
-    numCols = std::min(glp_get_num_cols(P_total) + 1, std::min(numRows, 5));
+    numCols = std::min(glp_get_num_cols(P_total) + 1, std::min(numRows, 4));
     // numCols = 5;
     findDC();
     
@@ -370,44 +370,68 @@ string BoolSimplifier::simplifyBoolExp(void)
     iota(allIdx.begin(), allIdx.end(), - nVar);
     dummyHead += "&" + formatDc(allIdx);
     
-    sDcs = dummyHead + "|" + sDcs;
 
-    cout << sDcs << endl;
-
-    MintermCalculator cDcs(sDcs);
-    MintermVector vDc = cDcs.calculate();
-    //vDc.pop_back();
     MintermVector vExp = cSource.calculate();
-    
-    std::unordered_set<int> vDcSet(vDc.begin(), vDc.end());
-    for (int i = 0; i < vExp.size(); ++i)
+    std::vector<minbool::MinTerm<16Ui64>> solution;
+    if (sDcs.empty())
     {
-        if (vDcSet.count(vExp[i])) {
-            vExp.erase(vExp.begin() + i);
-            --i;
+        MintermVector vDc = {};
+        formatEspressoInput(vExp, vDc, cSource.getSymbolTable());
+        std::vector<uint16_t> on {vExp.begin(), vExp.end()};
+        solution = minbool::minimize_boolean<16>(on, {});
+    }
+    else
+    {
+        sDcs = dummyHead + "|" + sDcs;
+
+         MintermCalculator cDcs(sDcs);
+        MintermVector vDc = cDcs.calculate();
+        
+        std::unordered_set<int> vDcSet(vDc.begin(), vDc.end());
+        for (int i = 0; i < vExp.size(); ++i)
+        {
+            if (vDcSet.count(vExp[i])) {
+                vExp.erase(vExp.begin() + i);
+                --i;
+            }
         }
+
+        if (vExp.empty())
+        {
+            cout << "Expression is always false" << endl;
+            return;
+        }
+
+        formatEspressoInput(vExp, vDc, cSource.getSymbolTable());
+
+        std::vector<uint16_t> on {vExp.begin(), vExp.end()};
+        std::vector<uint16_t> dcc {vDc.begin(), vDc.end()};
+
+        solution = minbool::minimize_boolean<16>(on, dcc);
     }
 
     // DEBUG
-    for (int i : vExp)
-    {
-        cout << i << " ";
-    }
-    cout << endl;
-    cout << endl;
-    for (int i : vDc)
-    {
-        cout << i << " ";
-    }
-    cout << endl;
+    // for (int i : vExp)
+    // {
+    //     cout << i << " ";
+    // }
+    // cout << endl;
 
-    formatEspressoInput(vExp, vDc, cSource.getSymbolTable());
+   
 
+    // DEBUG
+    // for (int i : vExp)
+    // {
+    //     cout << i << " ";
+    // }
+    // cout << endl;
+    // cout << endl;
+    // for (int i : vDc)
+    // {
+    //     cout << i << " ";
+    // }
+    // cout << endl;
 
-    std::vector<uint16_t> on {vExp.begin(), vExp.end()};
-    std::vector<uint16_t> dcc {vDc.begin(), vDc.end()};
-
-    auto solution = minbool::minimize_boolean<16>(on, dcc);
     auto endTime = std::chrono::high_resolution_clock::now();
 
     for (auto& term : solution)
@@ -417,7 +441,4 @@ string BoolSimplifier::simplifyBoolExp(void)
         << std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count() 
         << " millisecond(s)"
         << endl;
-    
-    
-    return "";
 }

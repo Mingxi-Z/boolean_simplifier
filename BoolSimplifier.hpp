@@ -33,7 +33,7 @@ public:
         std::remove(tmpFileName);
     }
 
-    string simplifyBoolExp(void);
+    void simplifyBoolExp(void);
 
     int nVar = -1;
     int glpCalls = 0;
