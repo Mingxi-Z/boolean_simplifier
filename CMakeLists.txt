@@ -9,9 +9,9 @@ find_package(highs)
 find_package(glpk)
 
 add_executable(boolean_simplify main.cpp)
+add_subdirectory(Espresso)
 target_sources(boolean_simplify PRIVATE BoolSimplifier.hpp)
 target_sources(boolean_simplify PRIVATE BoolSimplifier.cpp)
-
 
 target_include_directories(boolean_simplify PRIVATE MCDC/mcdc/Include)
 target_sources(boolean_simplify PRIVATE MCDC/mcdc/Source/ast.cpp)
