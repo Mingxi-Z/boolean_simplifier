@@ -98,9 +98,7 @@ int main() {
     } 
     cout << endl;
 
-    string result = simp->simplifyBoolExp();
-
-    cout << result << endl;
+    simp->simplifyBoolExp();
 
     cout << simp->glpCalls << endl;
     delete simp;
